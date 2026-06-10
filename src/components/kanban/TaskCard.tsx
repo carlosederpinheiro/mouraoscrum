@@ -3,7 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { motion } from 'motion/react';
 import { Clock, Edit, Trash, GripHorizontal, MoreHorizontal, CheckSquare } from 'lucide-react';
 import { EnrichedTask } from '../../types';
-import { cn, getPriorityColor, getPriorityLabel, getInitials, calculateDueDateStatus } from '../../lib/utils';
+import { cn, getPriorityColor, getPriorityLabel, getInitials, calculateDueDateStatus, formatDate } from '../../lib/utils';
 
 export function TaskCard({ 
   task, 
@@ -124,7 +124,7 @@ export function TaskCard({
               <div className="flex items-center gap-1.5">
                 <Clock size={12} className={cn(dueStatus?.color.split(' ')[0], "opacity-80")} />
                 <span className={cn("text-[9px] font-bold px-1 py-0.5 rounded", dueStatus?.color)}>
-                  {dueStatus?.label} ({new Date(task.due_date).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})})
+                  {dueStatus?.label} ({formatDate(task.due_date, {day: '2-digit', month: '2-digit'})})
                 </span>
               </div>
             )}

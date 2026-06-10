@@ -4,7 +4,7 @@ import { Target, Briefcase, Users, LayoutDashboard, Search, Settings, FileText, 
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, PieChart, Pie, Cell } from 'recharts';
 import { MacroAreaWithProjects, Staff, Task, MacroArea } from '../types';
 import { Modal } from '../components/shared/Modal';
-import { cn, getPriorityColor, getPriorityLabel, getInitials, calculateDueDateStatus } from '../lib/utils';
+import { cn, getPriorityColor, getPriorityLabel, getInitials, calculateDueDateStatus, formatDate } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useConfirm } from '../hooks/useConfirm';
@@ -363,7 +363,7 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
                           <p className="text-xs text-slate-400 font-bold truncate max-w-[150px] uppercase opacity-70">{task.project}</p>
                         </td>
                         <td className="px-6 py-5 text-right">
-                          <p className="text-xs font-bold text-red-600">{task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : '-'}</p>
+                          <p className="text-xs font-bold text-red-600">{task.due_date ? formatDate(task.due_date) : '-'}</p>
                           <div className="flex items-center justify-end gap-1 mt-1 font-bold text-[9px] text-red-400 uppercase animate-pulse">
                              Atrasado
                           </div>
@@ -845,7 +845,7 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
                     <div className="flex items-center gap-1.5 font-black">
                       <Calendar size={12} className={isDelayed ? "text-red-400" : "text-slate-300"} />
                       <span className={isDelayed ? "text-red-500" : "text-slate-500"}>
-                        {task.due_date ? new Date(task.due_date).toLocaleDateString('pt-BR') : 'Sem data'}
+                        {task.due_date ? formatDate(task.due_date) : 'Sem data'}
                       </span>
                     </div>
                   </div>

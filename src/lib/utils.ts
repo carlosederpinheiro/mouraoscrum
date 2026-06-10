@@ -60,3 +60,10 @@ export const mapStatusFromDB = (status: string): TaskStatus => {
     default: return 'todo';
   }
 };
+
+export const formatDate = (dateString?: string, options?: Intl.DateTimeFormatOptions) => {
+  if (!dateString) return '-';
+  const parts = dateString.split('T')[0].split('-');
+  const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  return date.toLocaleDateString('pt-BR', options);
+};
