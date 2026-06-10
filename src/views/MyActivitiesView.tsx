@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, SlidersHorizontal, ChevronDown, CheckCircle2, AlertCircle, Clock, Calendar, ArrowRight, User, ListTodo, TrendingUp, Plus, Filter, X } from 'lucide-react';
+import { Search, SlidersHorizontal, ChevronDown, CheckCircle2, AlertCircle, Clock, Calendar, ArrowRight, User, ListTodo, TrendingUp, Plus, Filter, X, CheckSquare, Trash2 } from 'lucide-react';
 import { DndContext, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverlay, defaultDropAnimationSideEffects } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { EnrichedTask, Staff, TaskStatus, TaskPriority, MacroAreaWithProjects, Task, Company } from '../types';
@@ -43,6 +43,8 @@ export function MyActivitiesView({
   const [newTaskDeadline, setNewTaskDeadline] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
   const [newTaskCompanyId, setNewTaskCompanyId] = useState<string>('');
+  const [newTaskChecklists, setNewTaskChecklists] = useState<{ id?: string, title: string, is_completed: boolean }[]>([]);
+  const [newChecklistTitle, setNewChecklistTitle] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const myName = currentUser?.full_name || 'Usuário Local';
@@ -186,12 +188,24 @@ export function MyActivitiesView({
 
           if (error) throw error;
 
+          await supabase.from('personal_task_checklists').delete().eq('personal_task_id', editingTask.id);
+          if (newTaskChecklists.length > 0) {
+            const checklistsToInsert = newTaskChecklists.map(c => ({
+              personal_task_id: editingTask.id,
+              title: c.title,
+              is_completed: c.is_completed
+            }));
+            const { error: checklistsError } = await supabase.from('personal_task_checklists').insert(checklistsToInsert);
+            if (checklistsError) throw checklistsError;
+          }
+
           onUpdatePersonalTasks(personalTasks.map(t => t.id === editingTask.id ? { 
             ...t, 
             title: newTaskTitle, 
             due_date: newTaskDeadline || undefined,
             priority: newTaskPriority,
-            company_id: newTaskCompanyId || undefined
+            company_id: newTaskCompanyId || undefined,
+            checklists: newTaskChecklists.map((c, idx) => ({ id: c.id || `temp-${idx}`, task_id: editingTask.id, title: c.title, is_completed: c.is_completed }))
           } : t));
           toast.success('Atividade pessoal atualizada com sucesso.');
         } else {
@@ -204,6 +218,17 @@ export function MyActivitiesView({
 
           if (error) throw error;
 
+          await supabase.from('task_checklists').delete().eq('task_id', editingTask.id);
+          if (newTaskChecklists.length > 0) {
+            const checklistsToInsert = newTaskChecklists.map(c => ({
+              task_id: editingTask.id,
+              title: c.title,
+              is_completed: c.is_completed
+            }));
+            const { error: checklistsError } = await supabase.from('task_checklists').insert(checklistsToInsert);
+            if (checklistsError) throw checklistsError;
+          }
+
           const newData = data.map(area => ({
             ...area,
             projects: area.projects.map(project => ({
@@ -215,7 +240,8 @@ export function MyActivitiesView({
                     ...task, 
                     title: newTaskTitle, 
                     due_date: newTaskDeadline || undefined,
-                    priority: newTaskPriority
+                    priority: newTaskPriority,
+                    checklists: newTaskChecklists.map((c, idx) => ({ id: c.id || `temp-${idx}`, task_id: editingTask.id, title: c.title, is_completed: c.is_completed }))
                   } : task
                 )
               }))
@@ -237,6 +263,16 @@ export function MyActivitiesView({
 
         if (error) throw error;
 
+        if (newTaskChecklists.length > 0) {
+          const checklistsToInsert = newTaskChecklists.map(c => ({
+            personal_task_id: inserted.id,
+            title: c.title,
+            is_completed: c.is_completed
+          }));
+          const { error: checklistsError } = await supabase.from('personal_task_checklists').insert(checklistsToInsert);
+          if (checklistsError) throw checklistsError;
+        }
+
         const newTask: Task = {
           id: inserted.id,
           title: newTaskTitle,
@@ -244,7 +280,8 @@ export function MyActivitiesView({
           priority: newTaskPriority,
           assignees: [myName],
           due_date: newTaskDeadline || undefined,
-          company_id: newTaskCompanyId || undefined
+          company_id: newTaskCompanyId || undefined,
+          checklists: newTaskChecklists.map((c, idx) => ({ id: c.id || `temp-${idx}`, task_id: inserted.id, title: c.title, is_completed: c.is_completed }))
         };
         onUpdatePersonalTasks([...personalTasks, newTask]);
         toast.success('Atividade pessoal criada com sucesso.');
@@ -254,6 +291,8 @@ export function MyActivitiesView({
       setNewTaskDeadline('');
       setNewTaskPriority('medium');
       setNewTaskCompanyId('');
+      setNewTaskChecklists([]);
+      setNewChecklistTitle('');
       setEditingTask(null);
       setIsPersonalModalOpen(false);
     } catch (err: any) {
@@ -307,6 +346,8 @@ export function MyActivitiesView({
     setNewTaskDeadline(task.due_date || '');
     setNewTaskPriority(task.priority || 'medium');
     setNewTaskCompanyId(task.company_id || '');
+    setNewTaskChecklists(task.checklists || []);
+    setNewChecklistTitle('');
     setIsPersonalModalOpen(true);
   };
 
@@ -390,6 +431,9 @@ export function MyActivitiesView({
                 setNewTaskTitle('');
                 setNewTaskDeadline('');
                 setNewTaskPriority('medium');
+                setNewTaskCompanyId('');
+                setNewTaskChecklists([]);
+                setNewChecklistTitle('');
                 setIsPersonalModalOpen(true);
               }}
               className="flex items-center gap-2 px-4 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold shadow-elegant hover:scale-105 active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
@@ -542,6 +586,7 @@ export function MyActivitiesView({
         onClose={() => {
           setIsPersonalModalOpen(false);
           setEditingTask(null);
+          setNewTaskChecklists([]);
         }} 
         title={editingTask ? "Editar Atividade" : "Nova Atividade Pessoal"}
       >
@@ -591,6 +636,80 @@ export function MyActivitiesView({
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+
+          {/* Checklist */}
+          <div className="pt-2 border-t border-slate-100">
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+              <CheckSquare size={14} /> Checklist / Subtarefas
+            </label>
+            <div className="space-y-2 mb-3 max-h-40 overflow-y-auto pr-1">
+              {newTaskChecklists.map((c, idx) => (
+                <div key={idx} className="flex items-center gap-2 group">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const newChecklists = [...newTaskChecklists];
+                      newChecklists[idx].is_completed = !newChecklists[idx].is_completed;
+                      setNewTaskChecklists(newChecklists);
+                    }}
+                    className={cn(
+                      "w-5 h-5 rounded flex items-center justify-center shrink-0 border transition-all",
+                      c.is_completed ? "bg-brand-accent border-brand-accent text-white" : "border-slate-300 bg-white"
+                    )}
+                  >
+                    {c.is_completed && <CheckCircle2 size={12} strokeWidth={3} />}
+                  </button>
+                  <input 
+                    type="text" 
+                    value={c.title}
+                    onChange={(e) => {
+                      const newChecklists = [...newTaskChecklists];
+                      newChecklists[idx].title = e.target.value;
+                      setNewTaskChecklists(newChecklists);
+                    }}
+                    className={cn(
+                      "flex-1 bg-transparent border-b border-transparent focus:border-brand-accent/30 focus:outline-none py-1 text-sm transition-all",
+                      c.is_completed ? "text-slate-400 line-through" : "text-slate-700 font-medium"
+                    )}
+                  />
+                  <button type="button" onClick={() => setNewTaskChecklists(newTaskChecklists.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                value={newChecklistTitle} 
+                onChange={(e) => setNewChecklistTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (newChecklistTitle.trim()) {
+                      setNewTaskChecklists([...newTaskChecklists, { title: newChecklistTitle.trim(), is_completed: false }]);
+                      setNewChecklistTitle('');
+                    }
+                  }
+                }}
+                placeholder="Adicionar item (Pressione Enter)"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent/30 transition-all text-slate-700"
+              />
+              <button 
+                type="button"
+                onClick={() => {
+                  if (newChecklistTitle.trim()) {
+                    setNewTaskChecklists([...newTaskChecklists, { title: newChecklistTitle.trim(), is_completed: false }]);
+                    setNewChecklistTitle('');
+                  }
+                }}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+
           <button 
             type="submit"
             className="w-full py-3.5 bg-brand-primary text-white rounded-xl text-xs font-bold shadow-elegant hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-wider mt-2"

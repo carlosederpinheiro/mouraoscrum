@@ -25,7 +25,8 @@ export function useScrumData() {
         { data: projectMembersTable },
         { data: taskAssigneesTable },
         { data: personalTasksTable },
-        { data: taskChecklistsTable }
+        { data: taskChecklistsTable },
+        { data: personalTaskChecklistsTable }
       ] = await Promise.all([
         supabase.from('macro_areas').select('*').order('name'),
         supabase.from('projects').select('*').order('name'),
@@ -36,7 +37,8 @@ export function useScrumData() {
         supabase.from('project_members').select('*'),
         supabase.from('task_assignees').select('*'),
         supabase.from('personal_tasks').select('*').order('due_date', { ascending: true }),
-        supabase.from('task_checklists').select('*').order('created_at', { ascending: true })
+        supabase.from('task_checklists').select('*').order('created_at', { ascending: true }),
+        supabase.from('personal_task_checklists').select('*').order('created_at', { ascending: true })
       ]);
 
       if (macroAreas && projectsTable && sprintsTable && tasksTable) {
@@ -85,11 +87,11 @@ export function useScrumData() {
       if (personalTasksTable) {
         const enrichedPersonalTasks = personalTasksTable.map(pt => {
            const profile = (profilesTable || []).find(p => p.id === pt.profile_id);
-           const taskChecklists = (taskChecklistsTable || []).filter(c => c.task_id === pt.id);
+           const personalChecklists = (personalTaskChecklistsTable || []).filter(c => c.personal_task_id === pt.id);
            return {
              ...pt,
              assignees: profile ? [profile.full_name] : [],
-             checklists: taskChecklists
+             checklists: personalChecklists.map(c => ({...c, task_id: pt.id})) // Map to expected shape
            };
         });
         setPersonalTasks(enrichedPersonalTasks);
