@@ -3,6 +3,8 @@ import { Mail, Lock, ArrowRight, ShieldCheck, UserCircle2, Briefcase, Loader2 } 
 import { useNavigate } from 'react-router-dom';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { supabase } from '../lib/supabase';
+import fundoLogin from '../assets/fundo_login.png';
+import logoConsultoria from '../assets/logo_consultoria.png';
 
 export function Portal() {
   const [activeTab, setActiveTab] = useState<'cliente' | 'colaborador'>('cliente');
@@ -39,7 +41,7 @@ export function Portal() {
       <div className="hidden lg:flex w-1/2 relative bg-primary flex-col justify-between overflow-hidden">
         <div className="absolute inset-0">
           <ImageWithFallback
-            src="/fundo_login.png"
+            src={fundoLogin}
             alt="Corporate Office"
             className="w-full h-full object-cover opacity-20 mix-blend-luminosity"
           />
@@ -49,7 +51,7 @@ export function Portal() {
         <div className="relative z-10 p-16 flex flex-col h-full justify-between">
           <div>
             <img
-              src="/logo_consultoria.png"
+              src={logoConsultoria}
               alt="Mourão Consultoria"
               className="h-16 w-auto mb-6 brightness-0 invert"
             />

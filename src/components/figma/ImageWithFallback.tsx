@@ -8,7 +8,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   src, 
   alt, 
   className, 
-  fallback = 'https://via.placeholder.com/1080x1080?text=Mourão+Consultoria',
+  fallback = 'https://ui-avatars.com/api/?name=Mour%C3%A3o+Consultoria&background=2c3e50&color=fff&size=512',
   ...props 
 }) => {
   const [error, setError] = React.useState(false);
