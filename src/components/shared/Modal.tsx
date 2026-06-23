@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
-export function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
+export function Modal({ isOpen, onClose, title, children, maxWidth = "max-w-md" }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode, maxWidth?: string }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -19,7 +19,7 @@ export function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, o
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 400 }}
-            className="relative bg-white rounded-2xl shadow-float w-full max-w-md overflow-hidden flex flex-col border border-white/20"
+            className={`relative bg-white rounded-2xl shadow-float w-full ${maxWidth} overflow-hidden flex flex-col border border-white/20`}
           >
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="text-lg font-bold text-slate-800">{title}</h3>
