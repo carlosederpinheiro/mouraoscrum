@@ -8,6 +8,7 @@ import { Modal } from '../components/shared/Modal';
 import { supabase } from '../lib/supabase';
 import { TaskColumn } from '../components/kanban/TaskColumn';
 import { TaskCard } from '../components/kanban/TaskCard';
+import { TaskEditModal } from '../components/kanban/TaskEditModal';
 import { toast } from 'sonner';
 import { useConfirm } from '../hooks/useConfirm';
 import { mapStatusToDB, cn } from '../lib/utils';
@@ -29,15 +30,6 @@ export function ProjectView({ project, activeMacroArea, onBack, onUpdateData, al
   const [newSprintStatus, setNewSprintStatus] = useState<'planejamento' | 'em_andamento' | 'concluido' | 'cancelado'>('planejamento');
 
   // New/Edit Task Form State
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
-  const [newTaskSprintId, setNewTaskSprintId] = useState<string>('');
-  const [newTaskCompanyId, setNewTaskCompanyId] = useState<string>('');
-  const [newTaskDueDate, setNewTaskDueDate] = useState('');
-  const [newTaskAssigneeIds, setNewTaskAssigneeIds] = useState<string[]>([]);
-  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>('todo');
-  const [newTaskChecklists, setNewTaskChecklists] = useState<{ id?: string, title: string, is_completed: boolean }[]>([]);
-  const [newChecklistTitle, setNewChecklistTitle] = useState('');
   const [projectTasks, setProjectTasks] = useState<EnrichedTask[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -175,111 +167,6 @@ export function ProjectView({ project, activeMacroArea, onBack, onUpdateData, al
     }
   };
 
-  const handleSaveTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTaskTitle.trim() || !newTaskSprintId) return;
-
-    try {
-      let taskId = editingTask?.id;
-
-      if (editingTask) {
-        const { error } = await supabase.from('tasks').update({
-          title: newTaskTitle,
-          status: mapStatusToDB(newTaskStatus),
-          priority: newTaskPriority,
-          due_date: newTaskDueDate || null,
-          sprint_id: newTaskSprintId,
-          company_id: newTaskCompanyId || null
-        }).eq('id', editingTask.id);
-
-        if (error) throw error;
-        
-        await supabase.from('task_assignees').delete().eq('task_id', editingTask.id);
-      } else {
-        const { data: inserted, error } = await supabase.from('tasks').insert({
-          title: newTaskTitle,
-          status: mapStatusToDB('todo'),
-          priority: newTaskPriority,
-          due_date: newTaskDueDate || null,
-          sprint_id: newTaskSprintId,
-          company_id: newTaskCompanyId || null
-        }).select().single();
-
-        if (error) throw error;
-        taskId = inserted.id;
-      }
-
-      if (newTaskAssigneeIds.length > 0 && taskId) {
-        const assigneesToInsert = newTaskAssigneeIds.map(profileId => ({
-          task_id: taskId,
-          profile_id: profileId
-        }));
-        const { error: assigneesError } = await supabase.from('task_assignees').insert(assigneesToInsert);
-        if (assigneesError) throw assigneesError;
-      }
-
-      if (taskId) {
-        await supabase.from('task_checklists').delete().eq('task_id', taskId);
-        if (newTaskChecklists.length > 0) {
-          const checklistsToInsert = newTaskChecklists.map(c => ({
-            task_id: taskId,
-            title: c.title,
-            is_completed: c.is_completed
-          }));
-          const { error: checklistsError } = await supabase.from('task_checklists').insert(checklistsToInsert);
-          if (checklistsError) throw checklistsError;
-        }
-      }
-
-      const taskData: any = {
-        id: taskId as string,
-        title: newTaskTitle,
-        status: editingTask ? newTaskStatus : 'todo',
-        priority: newTaskPriority,
-        due_date: newTaskDueDate || undefined,
-        sprint_id: newTaskSprintId,
-        company_id: newTaskCompanyId || undefined,
-        assignees: newTaskAssigneeIds.map(id => staff.find(s => s.id === id)?.full_name || id),
-        checklists: newTaskChecklists.map((c, idx) => ({ id: c.id || `temp-${idx}`, task_id: taskId as string, title: c.title, is_completed: c.is_completed })),
-        companyName: newTaskCompanyId ? companies.find(c => c.id === newTaskCompanyId)?.name : undefined,
-        macroAreaTitle: activeMacroArea.name
-      };
-
-      const newData = allData.map(a => {
-        if (a.id === activeMacroArea.id) {
-          return {
-            ...a,
-            projects: a.projects.map(p => {
-              if (p.id === project.id) {
-                return {
-                  ...p,
-                  sprints: p.sprints.map(s => {
-                    if (editingTask && editingTask.sprint_id !== newTaskSprintId) {
-                      if (s.id === editingTask.sprint_id) return { ...s, tasks: s.tasks.filter(t => t.id !== editingTask.id) };
-                      if (s.id === newTaskSprintId) return { ...s, tasks: [...s.tasks, taskData] };
-                    } else if (s.id === newTaskSprintId) {
-                      if (editingTask) return { ...s, tasks: s.tasks.map(t => t.id === editingTask.id ? taskData : t) };
-                      else return { ...s, tasks: [...s.tasks, taskData] };
-                    }
-                    return s;
-                  })
-                };
-              }
-              return p;
-            })
-          };
-        }
-        return a;
-      });
-
-      onUpdateData(newData);
-      setIsTaskModalOpen(false);
-      resetTaskForm();
-      toast.success(editingTask ? 'Tarefa atualizada com sucesso.' : 'Tarefa criada com sucesso.');
-    } catch (err: any) {
-      toast.error('Erro ao salvar tarefa: ' + (err.message || 'Tente novamente.'));
-    }
-  };
 
   const handleDeleteTask = async (taskId: string) => {
     const confirmed = await confirm({
@@ -309,34 +196,12 @@ export function ProjectView({ project, activeMacroArea, onBack, onUpdateData, al
     }
   };
 
-  const resetTaskForm = () => {
-    setNewTaskTitle('');
-    setNewTaskPriority('medium');
-    setNewTaskDueDate('');
-    setNewTaskAssigneeIds([]);
-    setNewTaskCompanyId('');
-    setNewTaskChecklists([]);
-    setNewChecklistTitle('');
-    setEditingTask(null);
-  };
 
   const openTaskModal = (task?: EnrichedTask) => {
     if (task) {
       setEditingTask(task);
-      setNewTaskTitle(task.title);
-      setNewTaskPriority(task.priority || 'medium');
-      setNewTaskSprintId(task.sprint_id);
-      setNewTaskDueDate(task.due_date || '');
-      // Match current names to IDs
-      const currentIds = staff.filter(s => (task.assignees || []).includes(s.full_name)).map(s => s.id);
-      setNewTaskAssigneeIds(currentIds);
-      setNewTaskStatus(task.status);
-      setNewTaskCompanyId(task.company_id || '');
-      setNewTaskChecklists(task.checklists || []);
-      setNewChecklistTitle('');
     } else {
-      resetTaskForm();
-      if (selectedSprintId !== 'all') setNewTaskSprintId(selectedSprintId);
+      setEditingTask(null);
     }
     setIsTaskModalOpen(true);
   };
@@ -618,150 +483,16 @@ export function ProjectView({ project, activeMacroArea, onBack, onUpdateData, al
         </form>
       </Modal>
 
-      <Modal isOpen={isTaskModalOpen} onClose={() => setIsTaskModalOpen(false)} title={editingTask ? "Editar Tarefa" : "Nova Tarefa"}>
-        <form onSubmit={handleSaveTask} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Título da Tarefa</label>
-            <input type="text" autoFocus value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="O que precisa ser feito?" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-accent focus:outline-none text-sm font-medium" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Prioridade</label>
-              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent">
-                <option value="low">Baixa</option>
-                <option value="medium">Média</option>
-                <option value="high">Alta</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Sprint</label>
-              <select value={newTaskSprintId} onChange={(e) => setNewTaskSprintId(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent">
-                {project.sprints.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Empresa Associada (Opcional)</label>
-              <select value={newTaskCompanyId} onChange={(e) => setNewTaskCompanyId(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent">
-                <option value="">Nenhuma Empresa</option>
-                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Data de Entrega</label>
-              <input type="date" value={newTaskDueDate} onChange={(e) => setNewTaskDueDate(e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-accent focus:outline-none text-sm font-medium" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Atribuir a (Equipe do Projeto)</label>
-            <div className="grid grid-cols-2 gap-2 p-3 bg-white border border-slate-200 rounded-xl max-h-32 overflow-y-auto shadow-inner">
-               {(project.staff_ids || []).map(sid => {
-                 const member = staff.find(s => s.id === sid);
-                 if (!member) return null;
-                 return (
-                   <label key={sid} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer border border-transparent hover:border-slate-100 transition-all">
-                     <input 
-                       type="checkbox" 
-                       checked={newTaskAssigneeIds.includes(sid)}
-                       onChange={(e) => {
-                         if (e.target.checked) setNewTaskAssigneeIds([...newTaskAssigneeIds, sid]);
-                         else setNewTaskAssigneeIds(newTaskAssigneeIds.filter(id => id !== sid));
-                       }}
-                       className="w-3.5 h-3.5 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
-                     />
-                     <span className="text-xs font-bold text-slate-700 truncate">{member.full_name}</span>
-                   </label>
-                 );
-               })}
-               {(project.staff_ids || []).length === 0 && (
-                 <p className="col-span-2 text-[9px] text-slate-400 font-bold italic py-2 text-center bg-slate-50 rounded-lg">
-                   Nenhum membro do staff alocado neste projeto.
-                 </p>
-               )}
-            </div>
-          </div>
-          <div className="border-t border-slate-100 pt-4 mt-2">
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-              <CheckSquare size={14} /> Checklist / Subtarefas
-            </label>
-            <div className="flex flex-col gap-2 mb-3 max-h-40 overflow-y-auto">
-              {newTaskChecklists.map((c, idx) => (
-                <div key={idx} className="flex items-center gap-2 group">
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      const newChecklists = [...newTaskChecklists];
-                      newChecklists[idx].is_completed = !newChecklists[idx].is_completed;
-                      setNewTaskChecklists(newChecklists);
-                    }}
-                    className={cn("w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0", c.is_completed ? "bg-emerald-500 border-emerald-500 text-white" : "border-slate-300 bg-white text-transparent")}
-                  >
-                    <CheckSquare size={12} />
-                  </button>
-                  <input 
-                    type="text" 
-                    value={c.title} 
-                    onChange={(e) => {
-                      const newChecklists = [...newTaskChecklists];
-                      newChecklists[idx].title = e.target.value;
-                      setNewTaskChecklists(newChecklists);
-                    }}
-                    className={cn("flex-1 bg-transparent text-sm font-medium border-none focus:ring-0 p-0 outline-none", c.is_completed ? "text-slate-400 line-through" : "text-slate-700")}
-                  />
-                  <button type="button" onClick={() => setNewTaskChecklists(newTaskChecklists.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                    <Trash size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                value={newChecklistTitle} 
-                onChange={(e) => setNewChecklistTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (newChecklistTitle.trim()) {
-                      setNewTaskChecklists([...newTaskChecklists, { title: newChecklistTitle.trim(), is_completed: false }]);
-                      setNewChecklistTitle('');
-                    }
-                  }
-                }}
-                placeholder="Adicionar um item (Aperte Enter)" 
-                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-accent focus:outline-none text-sm font-medium" 
-              />
-              <button 
-                type="button"
-                onClick={() => {
-                  if (newChecklistTitle.trim()) {
-                    setNewTaskChecklists([...newTaskChecklists, { title: newChecklistTitle.trim(), is_completed: false }]);
-                    setNewChecklistTitle('');
-                  }
-                }}
-                className="px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="flex-1 py-3 bg-brand-primary text-white font-bold text-sm rounded-lg hover:bg-brand-secondary transition-colors px-4">
-              {editingTask ? "SALVAR ALTERAÇÕES" : "ADICIONAR TAREFA"}
-            </button>
-            {editingTask && (
-              <button 
-                type="button" 
-                onClick={() => { handleDeleteTask(editingTask.id); setIsTaskModalOpen(false); }}
-                className="px-4 py-3 bg-red-50 text-red-600 font-bold text-sm rounded-lg hover:bg-red-100 transition-colors"
-              >
-                <Trash size={18} />
-              </button>
-            )}
-          </div>
-        </form>
-      </Modal>
+      <TaskEditModal 
+        isOpen={isTaskModalOpen}
+        onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
+        task={editingTask}
+        globalData={allData}
+        staff={staff}
+        companies={companies}
+        onSaveSuccess={onUpdateData}
+        initialProjectId={project.id}
+      />
     </div>
   );
 }

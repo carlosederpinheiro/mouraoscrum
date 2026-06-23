@@ -10,6 +10,7 @@ import { DndContext, closestCorners, KeyboardSensor, PointerSensor, useSensor, u
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { TaskCard } from '../components/kanban/TaskCard';
 import { DroppableColumn } from '../components/kanban/DroppableColumn';
+import { TaskEditModal } from '../components/kanban/TaskEditModal';
 import { mapStatusToDB } from '../lib/utils';
 
 export function CompaniesView({ 
@@ -30,7 +31,9 @@ export function CompaniesView({
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [editingTask, setEditingTask] = useState<EnrichedTask | null>(null);
   const [name, setName] = useState('');
   const [cnpj, setCnpj] = useState('');
   const [industry, setIndustry] = useState('');
@@ -205,7 +208,8 @@ export function CompaniesView({
   };
 
   const handleEditTask = (task: EnrichedTask) => {
-    toast.info(`Para editar a tarefa "${task.title}", acesse o projeto "${task.projectTitle}" na aba de Projetos.`, { duration: 5000 });
+    setEditingTask(task);
+    setIsTaskModalOpen(true);
   };
 
   const openModal = (company?: Company) => {
@@ -429,6 +433,16 @@ export function CompaniesView({
           </button>
         </form>
       </Modal>
+
+      <TaskEditModal 
+        isOpen={isTaskModalOpen}
+        onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
+        task={editingTask}
+        globalData={data || []}
+        staff={staff || []}
+        companies={companies}
+        onSaveSuccess={(newData) => onUpdateGlobalData && onUpdateGlobalData(newData)}
+      />
     </div>
   );
 }
