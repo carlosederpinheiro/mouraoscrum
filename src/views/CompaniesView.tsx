@@ -317,6 +317,16 @@ export function CompaniesView({
             </DragOverlay>
           </DndContext>
         </div>
+
+        <TaskEditModal 
+          isOpen={isTaskModalOpen}
+          onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
+          task={editingTask}
+          globalData={data || []}
+          staff={staff || []}
+          companies={companies}
+          onSaveSuccess={(newData) => onUpdateGlobalData && onUpdateGlobalData(newData)}
+        />
       </div>
     );
   }
@@ -433,16 +443,6 @@ export function CompaniesView({
           </button>
         </form>
       </Modal>
-
-      <TaskEditModal 
-        isOpen={isTaskModalOpen}
-        onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
-        task={editingTask}
-        globalData={data || []}
-        staff={staff || []}
-        companies={companies}
-        onSaveSuccess={(newData) => onUpdateGlobalData && onUpdateGlobalData(newData)}
-      />
     </div>
   );
 }
