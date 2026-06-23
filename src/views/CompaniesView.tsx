@@ -172,6 +172,40 @@ export function CompaniesView({
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    const confirmed = await confirm({
+      title: 'Excluir Tarefa',
+      message: 'Deseja realmente excluir esta tarefa associada a esta empresa?'
+    });
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+      if (error) throw error;
+
+      if (data && onUpdateGlobalData) {
+        const newData = data.map(area => ({
+          ...area,
+          projects: area.projects.map(project => ({
+            ...project,
+            sprints: project.sprints.map(sprint => ({
+              ...sprint,
+              tasks: sprint.tasks.filter(t => t.id !== taskId)
+            }))
+          }))
+        }));
+        onUpdateGlobalData(newData);
+      }
+      toast.success('Tarefa excluída com sucesso.');
+    } catch (err: any) {
+      toast.error('Erro ao excluir tarefa: ' + (err.message || 'Tente novamente.'));
+    }
+  };
+
+  const handleEditTask = (task: EnrichedTask) => {
+    toast.info(`Para editar a tarefa "${task.title}", acesse o projeto "${task.projectTitle}" na aba de Projetos.`, { duration: 5000 });
+  };
+
   const openModal = (company?: Company) => {
     if (company) {
       setEditingCompany(company);
@@ -254,8 +288,8 @@ export function CompaniesView({
                     key={col.id}
                     column={col}
                     tasks={tasksInColumn}
-                    onEditPersonalTask={() => {}} 
-                    onDeletePersonalTask={() => {}}
+                    onEditPersonalTask={handleEditTask} 
+                    onDeletePersonalTask={handleDeleteTask}
                     personalTasksCount={0}
                     staff={staff || []}
                   />

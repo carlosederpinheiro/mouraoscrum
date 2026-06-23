@@ -85,7 +85,13 @@ export function useScrumData() {
         const sortedCompanies = [...companiesTable].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
         setCompanies(sortedCompanies);
       }
-      if (profilesTable) setStaff(profilesTable);
+      if (profilesTable) {
+        const secureProfiles = profilesTable.map(p => ({
+          ...p,
+          avatar_url: p.avatar_url?.replace('http://', 'https://')
+        }));
+        setStaff(secureProfiles);
+      }
       
       if (personalTasksTable) {
         const enrichedPersonalTasks = personalTasksTable.map(pt => {
