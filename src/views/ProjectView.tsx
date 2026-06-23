@@ -41,9 +41,7 @@ export function ProjectView({ project, activeMacroArea, onBack, onUpdateData, al
       sprint.tasks.map(task => ({ ...task, sprintTitle: sprint.title }))
     );
     setProjectTasks(enriched);
-    if (project.sprints.length > 0 && !newTaskSprintId) {
-      setNewTaskSprintId(project.sprints[0].id);
-    }
+
   }, [project]);
 
   const handleSaveSprint = async (e: React.FormEvent) => {

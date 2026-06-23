@@ -281,7 +281,7 @@ export function TaskEditModal({ isOpen, onClose, task, globalData, staff, compan
                  const isSelected = newTaskAssigneeIds.includes(sid);
                  return (
                    <div key={sid} onClick={() => toggleAssignee(sid)} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all border ${isSelected ? 'bg-brand-accent/5 border-brand-accent/30' : 'hover:bg-slate-50 border-transparent'}`}>
-                     <ImageWithFallback src={member.avatar_url || ''} alt={member.full_name} fallbackText={member.full_name} className="w-6 h-6 rounded-full object-cover shrink-0" />
+                     <ImageWithFallback src={member.avatar_url || ''} alt={member.full_name} className="w-6 h-6 rounded-full object-cover shrink-0" />
                      <span className={`text-xs font-bold truncate ${isSelected ? 'text-brand-accent' : 'text-slate-600'}`}>{member.full_name}</span>
                    </div>
                  )
