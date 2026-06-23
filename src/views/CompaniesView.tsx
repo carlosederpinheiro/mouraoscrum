@@ -67,6 +67,8 @@ export function CompaniesView({
                 ...task,
                 macroAreaId: area.id,
                 projectId: project.id,
+                projectTitle: project.name,
+                macroAreaTitle: area.name,
                 sprint_id: sprint.id,
                 sprintTitle: sprint.title
               });
