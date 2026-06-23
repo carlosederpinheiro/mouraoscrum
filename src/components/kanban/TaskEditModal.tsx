@@ -246,16 +246,16 @@ export function TaskEditModal({ isOpen, onClose, task, globalData, staff, compan
                 <div className="space-y-2.5">
                   {newTaskChecklists.map((checklist, index) => (
                     <div key={index} className="flex items-center gap-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm group hover:border-brand-accent/30 transition-all">
-                      <div className="relative flex items-center justify-center shrink-0">
+                      <label className="relative flex items-center justify-center shrink-0 cursor-pointer">
                         <input type="checkbox" checked={checklist.is_completed} onChange={() => {
                             const newChecklists = [...newTaskChecklists];
                             newChecklists[index].is_completed = !newChecklists[index].is_completed;
                             setNewTaskChecklists(newChecklists);
                           }} className="peer sr-only" />
-                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors cursor-pointer ${checklist.is_completed ? 'bg-brand-accent border-brand-accent' : 'border-slate-300 hover:border-brand-accent bg-white'}`}>
+                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${checklist.is_completed ? 'bg-brand-accent border-brand-accent' : 'border-slate-300 hover:border-brand-accent bg-white'}`}>
                           {checklist.is_completed && <CheckCircle2 size={16} className="text-white" />}
                         </div>
-                      </div>
+                      </label>
                       <span className={`flex-1 text-sm font-semibold transition-all ${checklist.is_completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{checklist.title}</span>
                       <button type="button" onClick={() => removeChecklist(index)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
                         <Trash2 size={16} />
