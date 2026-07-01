@@ -20,7 +20,7 @@ interface TaskEditModalProps {
 
 export function TaskEditModal({ isOpen, onClose, task, globalData, staff, companies, onSaveSuccess, initialProjectId }: TaskEditModalProps) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState<'baixa' | 'media' | 'alta'>('media');
+  const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
   const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>('todo');
   const [newTaskAssigneeIds, setNewTaskAssigneeIds] = useState<string[]>([]);
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -56,7 +56,7 @@ export function TaskEditModal({ isOpen, onClose, task, globalData, staff, compan
         })) || []);
       } else {
         setNewTaskTitle('');
-        setNewTaskPriority('media');
+        setNewTaskPriority('medium');
         setNewTaskStatus('todo');
         setNewTaskDueDate('');
         setNewTaskCompanyId('');
@@ -288,9 +288,9 @@ export function TaskEditModal({ isOpen, onClose, task, globalData, staff, compan
                     <AlertTriangle size={16} className="text-amber-500" /> Prioridade
                   </label>
                   <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value as any)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-accent cursor-pointer appearance-none">
-                    <option value="baixa">Baixa</option>
-                    <option value="media">Média</option>
-                    <option value="alta">Alta</option>
+                    <option value="low">Baixa</option>
+                    <option value="medium">Média</option>
+                    <option value="high">Alta</option>
                   </select>
                 </div>
               </div>
