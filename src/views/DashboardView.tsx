@@ -227,87 +227,43 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
 
   return (
     <div className="flex flex-col h-full bg-slate-50 overflow-y-auto scrollbar-hide">
-      <div className="bg-white border-b border-slate-200 p-8 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-4">
+      <div className="bg-white border-b border-slate-200 px-8 py-6 flex flex-col xl:flex-row xl:items-center justify-between shrink-0 gap-6">
         <div>
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 bg-slate-100 px-3 py-1 rounded inline-block">
-            Mourão Consultoria / Dashboard
-          </div>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tight">Visão Geral Corporativa</h3>
+          <h3 className="text-3xl font-black text-slate-900 tracking-tight">Dashboard de Atividades</h3>
+          <p className="text-sm font-medium text-slate-500 mt-1">Acompanhamento e desempenho geral de projetos</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="px-5 py-3 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col items-start gap-1">
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Status Geral</span>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">Equipe Sincronizada</span>
+
+        <div className="flex flex-wrap items-center gap-4">
+          {[
+            { label: 'Projetos', value: stats.totalProjects, icon: Briefcase, color: 'text-blue-600', iconBg: 'bg-blue-50', border: 'border-blue-100' },
+            { label: 'Saúde', value: `${100 - Math.round((stats.delayedTasksCount / (stats.totalTasks || 1)) * 100)}%`, icon: Users, color: 'text-indigo-600', iconBg: 'bg-indigo-50', border: 'border-indigo-100' },
+            { label: 'Progresso', value: `${stats.overallProgress}%`, icon: TrendingUp, color: 'text-brand-primary', iconBg: 'bg-brand-accent/10', border: 'border-brand-accent/20' },
+            { label: 'Atrasos', value: stats.delayedTasksCount, icon: AlertCircle, color: stats.delayedTasksCount > 0 ? 'text-red-600' : 'text-slate-400', iconBg: stats.delayedTasksCount > 0 ? 'bg-red-50' : 'bg-slate-50', border: stats.delayedTasksCount > 0 ? 'border-red-200' : 'border-slate-200', isAlert: stats.delayedTasksCount > 0 }
+          ].map((item, idx) => (
+            <div key={idx} className={cn("flex items-center gap-4 bg-white px-5 py-3 rounded-2xl border shadow-sm hover:shadow-md transition-all", item.border)}>
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", item.iconBg, item.color)}>
+                <item.icon size={22} strokeWidth={2.5} />
+              </div>
+              <div className="flex flex-col pr-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{item.label}</span>
+                <span className={cn("text-2xl font-black tracking-tight leading-none", item.isAlert ? "text-red-600" : "text-slate-800")}>{item.value}</span>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
-        {/* Top Cards */}
-        <motion.div 
-          variants={{
-            hidden: { opacity: 0 },
-            show: {
-              opacity: 1,
-              transition: { staggerChildren: 0.05 }
-            }
-          }}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          {[
-            { label: 'Total Projetos', value: stats.totalProjects, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Saúde da Equipe', value: `${100 - Math.round((stats.delayedTasksCount / (stats.totalTasks || 1)) * 100)}%`, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { label: 'Progresso Geral', value: `${stats.overallProgress}%`, icon: TrendingUp, color: 'text-brand-primary', bg: 'bg-brand-accent/10' },
-            { label: 'Atrasos Ativos', value: stats.delayedTasksCount, icon: AlertCircle, color: stats.delayedTasksCount > 0 ? 'text-red-600' : 'text-slate-400', bg: stats.delayedTasksCount > 0 ? 'bg-red-50' : 'bg-slate-50', isAlert: stats.delayedTasksCount > 0 }
-          ].map((card, idx) => (
-            <motion.div 
-              key={idx}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 }
-              }}
-              whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.2 } }}
-              whileTap={{ scale: 0.98 }}
-              className="bg-white p-6 rounded-2xl border border-slate-200 shadow-elegant flex items-center gap-5 group transition-all hover:border-brand-accent/30 cursor-pointer"
-            >
-              <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", card.bg, card.color)}>
-                <card.icon size={28} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em] mb-1">{card.label}</p>
-                <h4 className={cn("text-3xl font-black tracking-tight transition-colors", card.isAlert ? "text-red-600" : "text-slate-800")}>
-                  {card.value}
-                </h4>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
 
+      <div className="p-6 space-y-8">
         {/* Priority Section: Critical Tasks & Team Workload */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Critical Tasks - NOW PRIMARY */}
-          <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-elegant overflow-hidden flex flex-col ring-1 ring-red-100">
-            <div className="p-5 border-b border-red-50 flex items-center justify-between bg-red-50/20">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-200">
-                  <AlertCircle size={22} className="animate-pulse" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Foco Necessário: Tarefas Críticas</h4>
-                  <p className="text-xs font-bold text-red-500 uppercase tracking-wider">{stats.delayedTasksCount} Atrasos que exigem atenção imediata</p>
-                </div>
+          <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-elegant overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Tarefas Críticas & Atrasos</h4>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">{stats.delayedTasksCount} {stats.delayedTasksCount === 1 ? 'atividade necessita' : 'atividades necessitam'} de atenção</p>
               </div>
-              <button 
-                onClick={() => setIsInterventionModalOpen(true)}
-                className="text-xs font-bold bg-red-500 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-red-200 hover:bg-red-600 hover:scale-105 active:scale-95 transition-all uppercase tracking-wider ring-2 ring-white/20"
-              >
-                AGIR AGORA
-              </button>
             </div>
             <div className="flex-1 overflow-auto max-h-[460px]">
               {stats.criticalTasks.length === 0 ? (
@@ -319,71 +275,71 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
                   <p className="text-slate-400 text-sm font-medium">Não há tarefas em atraso no momento.</p>
                 </div>
               ) : (
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Atividade / Prioridade</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Responsável</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Origem</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Data Limite</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {stats.criticalTasks.map((task, i) => (
-                      <tr key={i} className="hover:bg-red-50/30 transition-colors group">
-                        <td className="px-6 py-5">
-                          <p className="text-sm font-bold text-slate-800 mb-1.5">{task.title}</p>
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tighter ring-1 ring-inset", getPriorityColor(task.priority))}>
-                              {getPriorityLabel(task.priority)}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{task.status === 'in-progress' ? 'Sendo feita' : 'Parada'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-wrap justify-center gap-1">
-                            {task.assignees.map((a: string) => {
-                              const staffMember = staff.find(s => 
-                                s.full_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 
-                                a.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                              );
-                              
-                              return staffMember?.avatar_url ? (
-                                <img key={a} src={staffMember.avatar_url} alt={a} title={a} className="w-7 h-7 rounded-lg object-cover border-2 border-white shadow-sm" />
-                              ) : (
-                                <div key={a} className="w-7 h-7 rounded-lg bg-brand-primary text-xs font-bold text-white flex items-center justify-center border-2 border-white shadow-sm" title={a}>
-                                  {a.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <p className="text-xs font-bold text-brand-primary uppercase tracking-tighter leading-none mb-1">{task.macroArea}</p>
-                          <p className="text-xs text-slate-400 font-bold truncate max-w-[150px] uppercase opacity-70">{task.project}</p>
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          <p className="text-xs font-bold text-red-600">{task.due_date ? formatDate(task.due_date) : '-'}</p>
-                          <div className="flex items-center justify-end gap-1 mt-1 font-bold text-[9px] text-red-400 uppercase animate-pulse">
-                             Atrasado
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="p-4 space-y-3">
+                  {stats.criticalTasks.map((task, i) => {
+                    const due = new Date(task.due_date!);
+                    const today = new Date();
+                    today.setHours(0,0,0,0); due.setHours(0,0,0,0);
+                    const diffDays = Math.max(1, Math.ceil((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
+                    
+                    return (
+                      <div key={i} className="group relative bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-red-200 transition-all overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        {/* Left Accent border */}
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+                        
+                        <div className="flex-1 pl-2">
+                           <div className="flex items-center gap-2 mb-1.5">
+                             <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded uppercase tracking-wider">Atrasada há {diffDays} {diffDays === 1 ? 'dia' : 'dias'}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">• {task.macroArea}</span>
+                           </div>
+                           <h5 className="text-sm font-black text-slate-800 mb-1 line-clamp-1">{task.title}</h5>
+                           <p className="text-xs font-medium text-slate-500 line-clamp-1">{task.project}</p>
+                        </div>
+                        
+                        <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
+                           <div className="flex items-center gap-2">
+                             <span className={cn("text-[9px] px-2 py-1 rounded-md font-bold uppercase tracking-widest", getPriorityColor(task.priority))}>
+                               {getPriorityLabel(task.priority)}
+                             </span>
+                           </div>
+                           
+                           <div className="flex -space-x-2">
+                             {task.assignees.slice(0, 3).map((a: string) => {
+                               const staffMember = staff.find(s => 
+                                 s.full_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 
+                                 a.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                               );
+                               return staffMember?.avatar_url ? (
+                                 <img key={a} src={staffMember.avatar_url} alt={a} title={a} className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-slate-100" />
+                               ) : (
+                                 <div key={a} className="w-8 h-8 rounded-full bg-slate-100 text-[10px] font-bold text-slate-500 flex items-center justify-center border-2 border-white shadow-sm ring-1 ring-slate-100" title={a}>
+                                   {a.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                 </div>
+                               );
+                             })}
+                             {task.assignees.length > 3 && (
+                               <div className="w-8 h-8 rounded-full bg-slate-50 text-[10px] font-bold text-slate-400 flex items-center justify-center border-2 border-white shadow-sm ring-1 ring-slate-100">
+                                 +{task.assignees.length - 3}
+                               </div>
+                             )}
+                           </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>
 
           {/* Team Vital Signs / Workload */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-elegant p-6 flex flex-col font-sans">
-             <div className="flex items-center justify-between mb-6">
+             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Sinais Vitais da Equipe</h4>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Carga e Capacidade Atual</p>
                 </div>
-                <div className="p-2 bg-brand-accent/10 rounded-xl text-brand-primary">
+                <div className="p-2.5 bg-brand-primary/5 rounded-xl border border-brand-primary/10 text-brand-primary">
                   <Users size={20} />
                 </div>
              </div>
@@ -392,24 +348,38 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
                 {stats.userStats.slice(0, 5).map((user) => {
                   const workloadPercent = Math.min(100, (user.total / 15) * 100); // 15 tasks is "full capacity"
                   const isOverloaded = user.total > 12;
+                  
+                  const staffMember = staff.find(s => 
+                    s.full_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === 
+                    user.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                  );
 
                   return (
                     <div key={user.name} className="space-y-2">
                        <div className="flex justify-between items-end">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-700">{user.name}</span>
-                            {isOverloaded && (
-                              <span className="text-[10px] font-bold bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded uppercase">Sobrecarregado</span>
+                          <div className="flex items-center gap-2.5">
+                            {staffMember?.avatar_url ? (
+                              <img src={staffMember.avatar_url} alt={user.name} className="w-6 h-6 rounded-full object-cover shadow-sm ring-1 ring-slate-100" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-brand-primary text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-1 ring-slate-100">
+                                {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                              </div>
                             )}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-800">{user.name}</span>
+                              {isOverloaded && (
+                                <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded uppercase tracking-wider">Sobrecarregado</span>
+                              )}
+                            </div>
                           </div>
-                          <span className={cn("text-xs font-bold", isOverloaded ? "text-red-500" : "text-brand-primary")}>
+                          <span className={cn("text-[11px] font-bold", isOverloaded ? "text-red-500" : "text-slate-500")}>
                             {user.total} Ativas
                           </span>
                        </div>
                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex gap-0.5">
                           <div 
                             className={cn(
-                              "h-full rounded-full transition-all duration-500",
+                              "h-full rounded-full transition-all duration-500 shadow-inner",
                               isOverloaded ? "bg-red-500" : user.total > 8 ? "bg-amber-400" : "bg-emerald-500"
                             )} 
                             style={{ width: `${workloadPercent}%` }}
@@ -420,20 +390,20 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
                 })}
              </div>
 
-             <div className="mt-8 pt-6 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 px-6 pb-6 rounded-b-2xl">
-               <div className="flex items-center justify-between text-center">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Capacidade</span>
+             <div className="mt-8 pt-5 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 px-6 pb-5 rounded-b-2xl">
+               <div className="flex items-center justify-center gap-8 md:gap-12 text-center">
+                  <div className="flex flex-col gap-1 items-center">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Capacidade</span>
                     <span className="text-lg font-black text-slate-800">{stats.vitalSigns.capacityPercent}%</span>
                   </div>
                   <div className="w-px h-8 bg-slate-200" />
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Saúde Global</span>
+                  <div className="flex flex-col gap-1 items-center">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Saúde Global</span>
                     <span className={cn("text-lg font-black", stats.vitalSigns.healthColor)}>{stats.vitalSigns.globalHealth}</span>
                   </div>
                   <div className="w-px h-8 bg-slate-200" />
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase">Atratividade</span>
+                  <div className="flex flex-col gap-1 items-center">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Atratividade</span>
                     <span className="text-lg font-black text-brand-primary">{stats.vitalSigns.attractivenessScore}</span>
                   </div>
                </div>
