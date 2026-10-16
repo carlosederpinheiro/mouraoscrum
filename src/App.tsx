@@ -90,6 +90,7 @@ import { DashboardView } from './views/DashboardView';
 import { MyActivitiesView } from './views/MyActivitiesView';
 import { MacroAreaView } from './views/MacroAreaView';
 import { ProjectView } from './views/ProjectView';
+import { CalendarView } from './views/CalendarView';
 
 // Icon Mapping
 const getIconForMacroArea = (name: string) => {
@@ -113,6 +114,7 @@ export default function App() {
   const [activeMacroAreaId, setActiveMacroAreaId] = useState<string | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [isMyActivitiesView, setIsMyActivitiesView] = useState(false);
+  const [isCalendarView, setIsCalendarView] = useState(false);
   const [isCompaniesView, setIsCompaniesView] = useState(false);
   const [isStaffView, setIsStaffView] = useState(false);
   const [isProfileView, setIsProfileView] = useState(false);
@@ -142,6 +144,7 @@ export default function App() {
     setActiveMacroAreaId(null);
     setActiveProjectId(null);
     setIsMyActivitiesView(false);
+    setIsCalendarView(false);
     setIsCompaniesView(false);
     setIsStaffView(false);
     setIsProfileView(false);
@@ -157,6 +160,7 @@ export default function App() {
       setActiveProjectId(projectId);
     }
     setIsMyActivitiesView(false);
+    setIsCalendarView(false);
     setIsCompaniesView(false);
     setIsStaffView(false);
     setIsProfileView(false);
@@ -245,6 +249,18 @@ export default function App() {
     setActiveMacroAreaId(null);
     setActiveProjectId(null);
     setIsMyActivitiesView(true);
+    setIsCalendarView(false);
+    setIsCompaniesView(false);
+    setIsStaffView(false);
+    setIsProfileView(false);
+    setIsSidebarOpen(false);
+  };
+
+  const navigateToCalendar = () => {
+    setActiveMacroAreaId(null);
+    setActiveProjectId(null);
+    setIsMyActivitiesView(false);
+    setIsCalendarView(true);
     setIsCompaniesView(false);
     setIsStaffView(false);
     setIsProfileView(false);
@@ -255,6 +271,7 @@ export default function App() {
     setActiveMacroAreaId(null);
     setActiveProjectId(null);
     setIsMyActivitiesView(false);
+    setIsCalendarView(false);
     setIsCompaniesView(true);
     setIsStaffView(false);
     setIsProfileView(false);
@@ -266,6 +283,7 @@ export default function App() {
     setActiveMacroAreaId(null);
     setActiveProjectId(null);
     setIsMyActivitiesView(false);
+    setIsCalendarView(false);
     setIsCompaniesView(false);
     setIsStaffView(true);
     setIsProfileView(false);
@@ -276,6 +294,7 @@ export default function App() {
     setActiveMacroAreaId(null);
     setActiveProjectId(null);
     setIsMyActivitiesView(false);
+    setIsCalendarView(false);
     setIsCompaniesView(false);
     setIsStaffView(false);
     setIsProfileView(true);
@@ -286,6 +305,7 @@ export default function App() {
     setActiveMacroAreaId(id);
     setActiveProjectId(null);
     setIsMyActivitiesView(false);
+    setIsCalendarView(false);
     setIsCompaniesView(false);
     setIsStaffView(false);
     setIsProfileView(false);
@@ -447,16 +467,16 @@ export default function App() {
                   whileTap={{ scale: 0.98 }}
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group relative cursor-pointer",
-                    !activeMacroAreaId && !isMyActivitiesView && !isCompaniesView && !isStaffView 
+                    !activeMacroAreaId && !isMyActivitiesView && !isCalendarView && !isCompaniesView && !isStaffView && !isProfileView
                       ? "font-bold text-white bg-brand-primary shadow-[0_0_15px_rgba(13,148,136,0.3)]" 
                       : "text-slate-400 hover:bg-white/5 hover:text-white",
                     isSidebarCollapsed && "justify-center px-0 h-[42px]"
                   )}
                   title="Dashboard"
                 >
-                  <LayoutGrid size={20} className={cn(!activeMacroAreaId && !isMyActivitiesView && !isCompaniesView && !isStaffView && !isProfileView ? "text-white" : "text-slate-500 group-hover:text-white")} />
+                  <LayoutGrid size={20} className={cn(!activeMacroAreaId && !isMyActivitiesView && !isCalendarView && !isCompaniesView && !isStaffView && !isProfileView ? "text-white" : "text-slate-500 group-hover:text-white")} />
                   {!isSidebarCollapsed && <span className="tracking-tight">Início / Dashboard</span>}
-                  {!isSidebarCollapsed && !activeMacroAreaId && !isMyActivitiesView && !isCompaniesView && !isStaffView && !isProfileView && (
+                  {!isSidebarCollapsed && !activeMacroAreaId && !isMyActivitiesView && !isCalendarView && !isCompaniesView && !isStaffView && !isProfileView && (
                     <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white/40 shadow-[0_0_8px_white]" />
                   )}
                 </motion.button>
@@ -477,6 +497,26 @@ export default function App() {
                   <CheckSquare size={20} className={cn(isMyActivitiesView ? "text-white" : "text-slate-500 group-hover:text-white")} />
                   {!isSidebarCollapsed && <span className="tracking-tight">Minhas Atividades</span>}
                   {!isSidebarCollapsed && isMyActivitiesView && (
+                    <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white/40 shadow-[0_0_8px_white]" />
+                  )}
+                </motion.button>
+
+                <motion.button 
+                  onClick={navigateToCalendar}
+                  whileHover={{ x: 4, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 group relative cursor-pointer",
+                    isCalendarView 
+                      ? "font-bold text-white bg-brand-primary shadow-[0_0_15px_rgba(13,148,136,0.3)]" 
+                      : "text-slate-400 hover:bg-white/5 hover:text-white",
+                    isSidebarCollapsed && "justify-center px-0 h-[42px]"
+                  )}
+                  title="Agenda / Calendário"
+                >
+                  <Calendar size={20} className={cn(isCalendarView ? "text-white" : "text-slate-500 group-hover:text-white")} />
+                  {!isSidebarCollapsed && <span className="tracking-tight">Agenda / Calendário</span>}
+                  {!isSidebarCollapsed && isCalendarView && (
                     <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white/40 shadow-[0_0_8px_white]" />
                   )}
                 </motion.button>
@@ -906,6 +946,17 @@ export default function App() {
                   staff={staff}
                 />
               </motion.div>
+            ) : isCalendarView ? (
+              <motion.div
+                key="calendar"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="h-full overflow-hidden"
+              >
+                <CalendarView />
+              </motion.div>
             ) : !activeMacroAreaId ? (
               <motion.div
                 key="dashboard"
@@ -920,6 +971,8 @@ export default function App() {
                   onNavigateToMacroArea={navigateToMacroArea} 
                   onUpdateData={setData}
                   staff={staff}
+                  currentUser={currentUser}
+                  onNavigateToCalendar={navigateToCalendar}
                 />
               </motion.div>
             ) : !activeProjectId ? (

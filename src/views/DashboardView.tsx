@@ -1,13 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Target, Briefcase, Users, LayoutDashboard, Search, Settings, FileText, ChevronRight, Calculator, CheckCircle2, TrendingUp, Clock, Calendar, MessageSquare, Zap, BarChart2, Plus, Rocket, AlertCircle, LineChart as LucideLineChart, ArrowRight, Edit, Trash } from 'lucide-react';
+import { Target, Briefcase, Users, LayoutDashboard, Search, Settings, FileText, ChevronRight, Calculator, CheckCircle2, TrendingUp, Clock, Calendar, MessageSquare, Zap, BarChart2, Plus, Rocket, AlertCircle, LineChart as LucideLineChart, ArrowRight, Edit, Trash, MapPin, CalendarDays, ExternalLink } from 'lucide-react';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, PieChart, Pie, Cell } from 'recharts';
-import { MacroAreaWithProjects, Staff, Task, MacroArea } from '../types';
+import { MacroAreaWithProjects, Staff, Task, MacroArea, CalendarEvent } from '../types';
 import { Modal } from '../components/shared/Modal';
 import { cn, getPriorityColor, getPriorityLabel, getInitials, calculateDueDateStatus, formatDate } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { useConfirm } from '../hooks/useConfirm';
+
+// Helper seguro para formatar datas no fuso horário LOCAL (YYYY-MM-DD)
+const formatLocalDate = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 // Icon Mapping
 const getIconForMacroArea = (name: string) => {
@@ -23,11 +31,20 @@ const getIconForMacroArea = (name: string) => {
   }
 };
 
-export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff = [] }: { 
+export function DashboardView({ 
+  data, 
+  onNavigateToMacroArea, 
+  onUpdateData, 
+  staff = [],
+  currentUser,
+  onNavigateToCalendar
+}: { 
   data: MacroAreaWithProjects[], 
   onNavigateToMacroArea: (id: string) => void,
   onUpdateData: (data: MacroAreaWithProjects[]) => void,
-  staff?: Staff[]
+  staff?: Staff[],
+  currentUser?: any,
+  onNavigateToCalendar?: () => void
 }) {
   const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<'overview' | 'metrics' | 'personal'>('overview');
@@ -36,6 +53,72 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
   const [isReprioritizeModalOpen, setIsReprioritizeModalOpen] = useState(false);
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+  
+  // Estado e busca das atividades de hoje no calendário (apenas visualização)
+  const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
+  const [isLoadingCalendar, setIsLoadingCalendar] = useState(true);
+
+  // Formatação de data completa para o cabeçalho
+  const todayFormatted = useMemo(() => {
+    const d = new Date();
+    const weekday = d.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const day = d.getDate();
+    const month = d.toLocaleDateString('pt-BR', { month: 'long' });
+    const year = d.getFullYear();
+    return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)}, ${day} de ${month} de ${year}`;
+  }, []);
+
+  const userName = currentUser?.full_name || 'Usuário';
+
+  useEffect(() => {
+    const fetchTodayEvents = async () => {
+      setIsLoadingCalendar(true);
+      try {
+        const todayStr = formatLocalDate(new Date());
+
+        const startWindow = new Date();
+        startWindow.setDate(startWindow.getDate() - 1);
+        startWindow.setHours(0, 0, 0, 0);
+
+        const endWindow = new Date();
+        endWindow.setDate(endWindow.getDate() + 1);
+        endWindow.setHours(23, 59, 59, 999);
+
+        const { data: eventsData, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .gte('start_time', startWindow.toISOString())
+          .lte('start_time', endWindow.toISOString())
+          .order('start_time', { ascending: true });
+
+        if (error) throw error;
+
+        const filtered = (eventsData as CalendarEvent[] || []).filter(ev => {
+          if (!ev.start_time) return false;
+          return formatLocalDate(new Date(ev.start_time)) === todayStr;
+        });
+
+        setTodayEvents(filtered);
+      } catch (err) {
+        console.warn('Erro ao buscar eventos do dia:', err);
+      } finally {
+        setIsLoadingCalendar(false);
+      }
+    };
+
+    fetchTodayEvents();
+
+    const channel = supabase
+      .channel('dashboard_today_events')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => {
+        fetchTodayEvents();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
   
   const [isMacroModalOpen, setIsMacroModalOpen] = useState(false);
   const [editingMacroArea, setEditingMacroArea] = useState<MacroArea | null>(null);
@@ -227,34 +310,133 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
 
   return (
     <div className="flex flex-col h-full bg-slate-50 overflow-y-auto scrollbar-hide">
-      <div className="bg-white border-b border-slate-200 px-8 py-6 flex flex-col xl:flex-row xl:items-center justify-between shrink-0 gap-6">
+      {/* HEADER LIMPO DO DASHBOARD */}
+      <div className="bg-white border-b border-slate-200 px-8 py-5 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tight">Dashboard de Atividades</h3>
-          <p className="text-sm font-medium text-slate-500 mt-1">Acompanhamento e desempenho geral de projetos</p>
+          <h3 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            Olá, {userName}, bem-vindo! 👋
+          </h3>
+          <p className="text-sm font-medium text-slate-500 mt-1">
+            Hoje é {todayFormatted} • Mourão Consultoria Econômica
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          {[
-            { label: 'Projetos', value: stats.totalProjects, icon: Briefcase, color: 'text-blue-600', iconBg: 'bg-blue-50', border: 'border-blue-100' },
-            { label: 'Saúde', value: `${100 - Math.round((stats.delayedTasksCount / (stats.totalTasks || 1)) * 100)}%`, icon: Users, color: 'text-indigo-600', iconBg: 'bg-indigo-50', border: 'border-indigo-100' },
-            { label: 'Progresso', value: `${stats.overallProgress}%`, icon: TrendingUp, color: 'text-brand-primary', iconBg: 'bg-brand-accent/10', border: 'border-brand-accent/20' },
-            { label: 'Atrasos', value: stats.delayedTasksCount, icon: AlertCircle, color: stats.delayedTasksCount > 0 ? 'text-red-600' : 'text-slate-400', iconBg: stats.delayedTasksCount > 0 ? 'bg-red-50' : 'bg-slate-50', border: stats.delayedTasksCount > 0 ? 'border-red-200' : 'border-slate-200', isAlert: stats.delayedTasksCount > 0 }
-          ].map((item, idx) => (
-            <div key={idx} className={cn("flex items-center gap-4 bg-white px-5 py-3 rounded-2xl border shadow-sm hover:shadow-md transition-all", item.border)}>
-              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", item.iconBg, item.color)}>
-                <item.icon size={22} strokeWidth={2.5} />
-              </div>
-              <div className="flex flex-col pr-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{item.label}</span>
-                <span className={cn("text-2xl font-black tracking-tight leading-none", item.isAlert ? "text-red-600" : "text-slate-800")}>{item.value}</span>
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center gap-2.5">
+          <div className="px-3.5 py-1.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">MourãoScrum</span>
+          </div>
         </div>
       </div>
 
+      <div className="p-6 space-y-6">
+        {/* CARD QUE PEGA TODO O HORIZONTE: PRÉVIA DO CALENDÁRIO PARA O DIA DE HOJE */}
+        <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+                <Calendar size={18} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">
+                    Atividades de hoje
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                    {todayEvents.length} {todayEvents.length === 1 ? 'compromisso' : 'compromissos'}
+                  </span>
+                </div>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">
+                  Lista das atividades de hoje de acordo com o calendário (apenas para visualizar)
+                </p>
+              </div>
+            </div>
 
-      <div className="p-6 space-y-8">
+            {onNavigateToCalendar && (
+              <button
+                onClick={onNavigateToCalendar}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all shadow-2xs hover:border-slate-300 cursor-pointer self-start sm:self-auto"
+                title="Abrir calendário completo"
+              >
+                <CalendarDays size={14} className="text-brand-primary" />
+                <span>Ver agenda completa</span>
+                <ChevronRight size={14} className="text-slate-400" />
+              </button>
+            )}
+          </div>
+
+          {/* Conteúdo das Atividades de Hoje */}
+          {isLoadingCalendar ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-24 bg-slate-50 rounded-2xl border border-slate-100 animate-pulse p-4" />
+              ))}
+            </div>
+          ) : todayEvents.length === 0 ? (
+            <div className="bg-slate-50/70 border border-dashed border-slate-200 rounded-2xl p-5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-800">Nenhum compromisso agendado para hoje</h5>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">
+                    Seu dia está livre no calendário corporativo para focar nas entregas e projetos estratégicos.
+                  </p>
+                </div>
+              </div>
+              {onNavigateToCalendar && (
+                <button
+                  onClick={onNavigateToCalendar}
+                  className="text-xs font-bold text-brand-primary hover:text-brand-primary/80 transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                >
+                  Abrir calendário <ChevronRight size={14} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+              {todayEvents.map((ev) => {
+                const startTimeFormatted = ev.all_day
+                  ? 'Dia todo'
+                  : new Date(ev.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                const endTimeFormatted = !ev.all_day && ev.end_time
+                  ? new Date(ev.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                  : null;
+
+                return (
+                  <div
+                    key={ev.id}
+                    className="bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between gap-2.5 shadow-2xs transition-all"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-1.5 mb-2">
+                        <span className="text-[11px] font-bold text-brand-primary flex items-center gap-1.5">
+                          <Clock size={12} className="text-brand-primary/70" />
+                          {startTimeFormatted} {endTimeFormatted && `• ${endTimeFormatted}`}
+                        </span>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-white text-slate-500 border-slate-200 shrink-0">
+                          {ev.source === 'apple' ? '🍏 iCloud' : 'Mourão'}
+                        </span>
+                      </div>
+                      <h5 className="text-sm font-bold text-slate-800 line-clamp-2 leading-snug" title={ev.title}>
+                        {ev.title}
+                      </h5>
+                    </div>
+
+                    {ev.location && (
+                      <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate pt-2 border-t border-slate-200/60">
+                        <MapPin size={12} className="shrink-0 text-slate-400" />
+                        <span className="truncate">{ev.location}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
         {/* Priority Section: Critical Tasks & Team Workload */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Critical Tasks - NOW PRIMARY */}
@@ -333,18 +515,18 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
           </div>
 
           {/* Team Vital Signs / Workload */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-elegant p-6 flex flex-col font-sans">
-             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 flex flex-col font-sans overflow-hidden">
+             <div className="flex items-center justify-between mb-5 pb-3.5 border-b border-slate-100 shrink-0">
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Sinais Vitais da Equipe</h4>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Carga e Capacidade Atual</p>
                 </div>
-                <div className="p-2.5 bg-brand-primary/5 rounded-xl border border-brand-primary/10 text-brand-primary">
-                  <Users size={20} />
+                <div className="p-2 bg-brand-primary/5 rounded-xl border border-brand-primary/10 text-brand-primary shrink-0">
+                  <Users size={18} />
                 </div>
              </div>
 
-             <div className="space-y-6 flex-1">
+             <div className="space-y-3.5 flex-1 min-h-0">
                 {stats.userStats.slice(0, 5).map((user) => {
                   const workloadPercent = Math.min(100, (user.total / 15) * 100); // 15 tasks is "full capacity"
                   const isOverloaded = user.total > 12;
@@ -355,31 +537,33 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
                   );
 
                   return (
-                    <div key={user.name} className="space-y-2">
-                       <div className="flex justify-between items-end">
-                          <div className="flex items-center gap-2.5">
+                    <div key={user.name} className="space-y-1.5">
+                       <div className="flex justify-between items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             {staffMember?.avatar_url ? (
-                              <img src={staffMember.avatar_url} alt={user.name} className="w-6 h-6 rounded-full object-cover shadow-sm ring-1 ring-slate-100" />
+                              <img src={staffMember.avatar_url} alt={user.name} className="w-6 h-6 rounded-full object-cover shadow-2xs ring-1 ring-slate-100 shrink-0" />
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-brand-primary text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-1 ring-slate-100">
+                              <div className="w-6 h-6 rounded-full bg-brand-primary text-[9px] font-bold text-white flex items-center justify-center shadow-2xs ring-1 ring-slate-100 shrink-0">
                                 {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                               </div>
                             )}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-800">{user.name}</span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-xs font-bold text-slate-800 truncate" title={user.name}>{user.name}</span>
                               {isOverloaded && (
-                                <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded uppercase tracking-wider">Sobrecarregado</span>
+                                <span className="text-[9px] font-bold bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.2 rounded uppercase tracking-wider shrink-0">
+                                  Alerta
+                                </span>
                               )}
                             </div>
                           </div>
-                          <span className={cn("text-[11px] font-bold", isOverloaded ? "text-red-500" : "text-slate-500")}>
-                            {user.total} Ativas
+                          <span className={cn("text-[11px] font-bold shrink-0", isOverloaded ? "text-red-500" : "text-slate-500")}>
+                            {user.total} {user.total === 1 ? 'ativa' : 'ativas'}
                           </span>
                        </div>
-                       <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex gap-0.5">
+                       <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                           <div 
                             className={cn(
-                              "h-full rounded-full transition-all duration-500 shadow-inner",
+                              "h-full rounded-full transition-all duration-500",
                               isOverloaded ? "bg-red-500" : user.total > 8 ? "bg-amber-400" : "bg-emerald-500"
                             )} 
                             style={{ width: `${workloadPercent}%` }}
@@ -390,21 +574,20 @@ export function DashboardView({ data, onNavigateToMacroArea, onUpdateData, staff
                 })}
              </div>
 
-             <div className="mt-8 pt-5 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 px-6 pb-5 rounded-b-2xl">
-               <div className="flex items-center justify-center gap-8 md:gap-12 text-center">
-                  <div className="flex flex-col gap-1 items-center">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Capacidade</span>
-                    <span className="text-lg font-black text-slate-800">{stats.vitalSigns.capacityPercent}%</span>
+             {/* Footer com métricas sintetizadas em Grid 3 colunas (sem vazamento) */}
+             <div className="mt-5 pt-3.5 border-t border-slate-100 bg-slate-50/80 -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 px-3 sm:px-4 py-3 shrink-0">
+               <div className="grid grid-cols-3 divide-x divide-slate-200 text-center">
+                  <div className="flex flex-col items-center px-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate w-full">Capacidade</span>
+                    <span className="text-base font-black text-slate-800 mt-0.5">{stats.vitalSigns.capacityPercent}%</span>
                   </div>
-                  <div className="w-px h-8 bg-slate-200" />
-                  <div className="flex flex-col gap-1 items-center">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Saúde Global</span>
-                    <span className={cn("text-lg font-black", stats.vitalSigns.healthColor)}>{stats.vitalSigns.globalHealth}</span>
+                  <div className="flex flex-col items-center px-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate w-full">Saúde</span>
+                    <span className={cn("text-base font-black mt-0.5 truncate w-full", stats.vitalSigns.healthColor)}>{stats.vitalSigns.globalHealth}</span>
                   </div>
-                  <div className="w-px h-8 bg-slate-200" />
-                  <div className="flex flex-col gap-1 items-center">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Atratividade</span>
-                    <span className="text-lg font-black text-brand-primary">{stats.vitalSigns.attractivenessScore}</span>
+                  <div className="flex flex-col items-center px-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate w-full">Score</span>
+                    <span className="text-base font-black text-brand-primary mt-0.5">{stats.vitalSigns.attractivenessScore}</span>
                   </div>
                </div>
              </div>

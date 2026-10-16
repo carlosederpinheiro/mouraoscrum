@@ -88,3 +88,18 @@ export interface ProjectWithSprints extends Project {
 export interface MacroAreaWithProjects extends MacroArea {
   projects: ProjectWithSprints[];
 }
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string | null;
+  location?: string | null;
+  start_time: string;
+  end_time: string;
+  all_day: boolean;
+  calendar_name: string;
+  status: 'CONFIRMED' | 'CANCELLED' | 'TENTATIVE';
+  source: 'apple' | 'system';
+  created_at?: string;
+  updated_at?: string;
+}
