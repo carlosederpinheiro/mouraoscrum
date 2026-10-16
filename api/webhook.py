@@ -53,8 +53,11 @@ async def supabase_webhook(request: Request):
                 location=target_record.get("location") or ""
             )
         elif event_type == "UPDATE":
+            event_uid = target_record["id"]
+            updated = False
             try:
-                event = calendar.event_by_uid(target_record["id"])
+                event_url = f"{str(calendar.url).rstrip('/')}/{event_uid}.ics"
+                event = calendar.event(url=event_url)
                 vevent = event.icalendar_instance.subcomponents[0]
                 vevent["summary"] = target_record["title"]
                 vevent["dtstart"] = datetime.datetime.fromisoformat(target_record["start_time"])
@@ -64,10 +67,13 @@ async def supabase_webhook(request: Request):
                 if target_record.get("location"):
                     vevent["location"] = target_record["location"]
                 event.save()
+                updated = True
             except Exception:
-                # Se o evento ainda não existia no CalDAV, cria agora
+                pass
+
+            if not updated:
                 calendar.save_event(
-                    uid=target_record["id"],
+                    uid=event_uid,
                     summary=target_record["title"],
                     dtstart=datetime.datetime.fromisoformat(target_record["start_time"]),
                     dtend=datetime.datetime.fromisoformat(target_record["end_time"]),
@@ -75,11 +81,25 @@ async def supabase_webhook(request: Request):
                     location=target_record.get("location") or ""
                 )
         elif event_type == "DELETE":
+            event_uid = target_record["id"]
+            deleted = False
             try:
-                event = calendar.event_by_uid(target_record["id"])
-                event.delete()
-            except Exception as e:
-                print(f"Aviso ao deletar no CalDAV: {e}")
+                event_url = f"{str(calendar.url).rstrip('/')}/{event_uid}.ics"
+                calendar.client.delete(event_url)
+                deleted = True
+            except Exception:
+                pass
+
+            if not deleted:
+                try:
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    events = calendar.search(start=now - datetime.timedelta(days=30), end=now + datetime.timedelta(days=90), event=True)
+                    for ev in events:
+                        if ev.icalendar_instance.subcomponents[0].get('uid') == event_uid:
+                            ev.delete()
+                            break
+                except Exception as e:
+                    print(f"Aviso ao deletar no CalDAV: {e}")
 
         return {"status": "success", "action": event_type, "id": target_record.get("id")}
     except Exception as e:
